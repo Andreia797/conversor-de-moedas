@@ -5,6 +5,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class ConversorMoedas {
@@ -13,6 +17,8 @@ public class ConversorMoedas {
     private static final String API_URL = "https://v6.exchangerate-api.com/v6/%s/latest/%s";
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final Gson gson = new Gson();
+    private static final List<String> historicoConversoes = new ArrayList<>();
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -49,6 +55,9 @@ public class ConversorMoedas {
                 case 8:
                     converterMoeda("CVE", "BRL", scanner);
                     break;
+                case 9:
+                    exibirHistoricoConversoes();
+                    break;
                 case 0:
                     System.out.println("\n🚪 Saindo da sua central de câmbio. Até a próxima jornada!");
                     break;
@@ -73,6 +82,7 @@ public class ConversorMoedas {
         System.out.println("  6. 🇧🇷 Real Brasileiro (BRL) <-> 🇬🇧 Libra Esterlina (GBP)");
         System.out.println("  7. 🇧🇷 Real Brasileiro (BRL) <-> 🇨🇻 Escudo Cabo-verdiano (CVE)");
         System.out.println("  8. 🇨🇻 Escudo Cabo-verdiano (CVE) <-> 🇧🇷 Real Brasileiro (BRL)");
+        System.out.println("  9. 📜 Exibir Histórico de Conversões");
         System.out.println("------------------------------------------");
         System.out.println("  0. 🚪 Sair do Portal");
         System.out.println("------------------------------------------");
@@ -86,15 +96,35 @@ public class ConversorMoedas {
             double taxaCambio = buscarTaxaDeCambio(moedaOrigem, moedaDestino);
             if (taxaCambio != -1) {
                 double valorConvertido = valorOrigem * taxaCambio;
-                System.out.printf("📊 %.2f %s (%s) valem %.2f %s (%s)\n",
+                String resultadoFormatado = String.format("%.2f %s (%s) valem %.2f %s (%s)",
                         valorOrigem, obterNomeMoeda(moedaOrigem), moedaOrigem,
                         valorConvertido, obterNomeMoeda(moedaDestino), moedaDestino);
+                System.out.println("📊 " + resultadoFormatado);
+                registrarConversao(resultadoFormatado); // Registrar no histórico
             } else {
                 System.out.println("⚠️ Falha ao obter a taxa de câmbio neste momento.");
             }
         } catch (IOException | InterruptedException e) {
             System.err.println("🚨 Erro na busca da taxa de câmbio: " + e.getMessage());
         }
+    }
+
+    private static void registrarConversao(String resultado) {
+        String registro = LocalDateTime.now().format(formatter) + ": " + resultado;
+        historicoConversoes.add(registro);
+        System.out.println("✔️ Conversão registrada no histórico.");
+    }
+
+    private static void exibirHistoricoConversoes() {
+        System.out.println("\n📜 --- Histórico de Conversões --- 📜");
+        if (historicoConversoes.isEmpty()) {
+            System.out.println("Nenhuma conversão realizada ainda.");
+        } else {
+            for (String registro : historicoConversoes) {
+                System.out.println(registro);
+            }
+        }
+        System.out.println("-------------------------------------\n");
     }
 
     private static String obterNomeMoeda(String codigoMoeda) {
